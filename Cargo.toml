@@ -1,0 +1,15 @@
+[package]
+name = "sillydb"
+version = "0.1.0"
+authors = ["Eugenio Tampieri <eugenio@eutampieri.eu>"]
+edition = "2021"
+description = "Tools to interact with relational databases"
+repository = "https://github.com/eutampieri/sillydb.git"
+license = "MIT"
+keywords = ["database", "abstraction"]
+categories = ["database"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = {version = "1.0", features = ["derive"]}
