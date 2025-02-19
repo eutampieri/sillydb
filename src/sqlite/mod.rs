@@ -17,7 +17,6 @@ fn convert_native_to_abstracted_values(v: &sqlite::Value) -> super::SqlValue {
         sqlite::Value::Binary(x) => super::SqlValue::Binary(x.clone()),
         sqlite::Value::Float(x) => super::SqlValue::Float(*x),
         sqlite::Value::Null => super::SqlValue::Null,
-
     }
 }
 
@@ -25,17 +24,22 @@ impl Database for sqlite::Connection {
     type Error = sqlite::Error;
     type Row = sqlite::Row;
 
-    fn execute(&self, query: &str) -> Result<(), Self::Error> {
-        self.execute(query)
+    fn execute(&mut self, query: &str) -> Result<(), Self::Error> {
+        sqlite::Connection::execute(&self, query)
     }
 
     fn query(
-        &self,
+        &mut self,
         query: &str,
         params: &[super::SqlValue],
     ) -> Result<Vec<std::collections::HashMap<String, super::SqlValue>>, Self::Error> {
         let mut statement = self.prepare(query)?;
-        statement.bind_iter(params.iter().enumerate().map(|(i, v)| (i + 1, convert_values(v))))?;
+        statement.bind_iter(
+            params
+                .iter()
+                .enumerate()
+                .map(|(i, v)| (i + 1, convert_values(v))),
+        )?;
         Ok(statement
             .iter()
             .filter_map(Result::ok)
@@ -58,17 +62,17 @@ mod test {
 
     #[test]
     fn can_execute() {
-        let db = get_db();
+        let mut db = get_db();
         assert!(db.execute("SELECT 1").is_ok());
     }
     #[test]
     fn execute_errors_on_invalid_sql() {
-        let db = get_db();
+        let mut db = get_db();
         assert!(db.execute("broken sql").is_err());
     }
     #[test]
     fn can_query_no_params() {
-        let db = get_db();
+        let mut db = get_db();
         let q = "SELECT 1 AS a";
         let params = &[];
         let result = db.query(q, params);
@@ -81,7 +85,7 @@ mod test {
     }
     #[test]
     fn can_query_with_params() {
-        let db = get_db();
+        let mut db = get_db();
         db.execute("CREATE TABLE test(k TEXT, v INTEGER)").unwrap();
         db.execute("INSERT INTO test VALUES (\"a\", 1)").unwrap();
         db.execute("INSERT INTO test VALUES (\"b\", 2)").unwrap();

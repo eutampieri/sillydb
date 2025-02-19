@@ -9,7 +9,11 @@ license = "MIT"
 keywords = ["database", "abstraction"]
 categories = ["database"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+sqlite = ["dep:sqlite"]
+postgres = ["dep:postgres"]
+default = ["sqlite", "postgres"]
 
 [dependencies]
-sqlite = "0.36.2"
+sqlite = { version = "0.36.2", optional = true }
+postgres = { version = "0.19.10", optional = true }

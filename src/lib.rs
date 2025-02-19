@@ -1,10 +1,14 @@
+#[cfg(feature = "postgres")]
+mod postgres;
+#[cfg(feature = "sqlite")]
 mod sqlite;
+
 pub trait Database {
     type Error: std::fmt::Debug;
     type Row;
-    fn execute(&self, query: &str) -> Result<(), Self::Error>;
+    fn execute(&mut self, query: &str) -> Result<(), Self::Error>;
     fn query(
-        &self,
+        &mut self,
         query: &str,
         params: &[SqlValue],
     ) -> Result<Vec<std::collections::HashMap<String, SqlValue>>, Self::Error>;
