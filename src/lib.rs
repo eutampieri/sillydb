@@ -3,6 +3,8 @@ mod postgres;
 #[cfg(feature = "sqlite")]
 mod sqlite;
 
+pub mod db;
+
 pub trait Database {
     type Error: std::fmt::Debug;
     type Row;
