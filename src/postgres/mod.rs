@@ -1,44 +1,7 @@
+use postgres::fallible_iterator::FallibleIterator;
+
 use super::Database;
-
-fn map_query(q: &str) -> String {
-    struct Ctx {
-        idx: usize,
-        result: String,
-    }
-
-    impl Ctx {
-        fn append(self, c: String) -> Self {
-            Self {
-                idx: self.idx,
-                result: self.result + &c,
-            }
-        }
-        fn inc(self) -> Self {
-            Self {
-                idx: self.idx + 1,
-                result: self.result,
-            }
-        }
-    }
-
-    q.chars()
-        .into_iter()
-        .fold(
-            Ctx {
-                idx: 0,
-                result: "".to_owned(),
-            },
-            |acc, x| match x {
-                '?' => {
-                    let a = acc.inc();
-                    let idx = a.idx;
-                    a.append(format!("${}", idx))
-                }
-                _ => acc.append(x.to_string()),
-            },
-        )
-        .result
-}
+mod utils;
 
 impl Database for postgres::Client {
     type Error = postgres::Error;
@@ -54,19 +17,16 @@ impl Database for postgres::Client {
         query: &str,
         params: &[crate::SqlValue],
     ) -> Result<Vec<std::collections::HashMap<String, crate::SqlValue>>, Self::Error> {
-        todo!()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn query_conversion_changes_question_marks_to_dollar_index() {
-        let query = "SELECT * FROM test WHERE a = ?;";
-        let expected = "SELECT * FROM test WHERE a = $1;";
-        let actual = map_query(query);
-        assert_eq!(expected, actual);
+        let query = utils::map_query(query);
+        let statement = self.prepare(&query)?;
+        let params = params
+            .into_iter()
+            .map(|x| utils::value_generic_to_concrete(x));
+        Ok(self
+            .query_raw(&statement, params)?
+            .iterator()
+            .filter_map(|x| x.ok())
+            .map(utils::row_conversion)
+            .collect())
     }
 }
