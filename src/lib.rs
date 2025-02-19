@@ -1,19 +1,20 @@
-mod persister;
-#[cfg(test)]
 mod sqlite;
-
-pub use persister::{DatabasePersister, DatabasePersisterFactory};
-use serde::Deserialize;
-
 pub trait Database {
-    type Error;
+    type Error: std::fmt::Debug;
     type Row;
     fn execute(&self, query: &str) -> Result<(), Self::Error>;
-    fn query(&self, query: &str, params: &[SqlValue]);
-    fn parse_row<D: for<'a> Deserialize<'a>>(row: Self::Row) -> D;
+    fn query(
+        &self,
+        query: &str,
+        params: &[SqlValue],
+    ) -> Result<Vec<std::collections::HashMap<String, SqlValue>>, Self::Error>;
 }
 
+#[derive(PartialEq, Debug)]
 pub enum SqlValue {
     String(String),
-    Unsigned64(u64),
+    Integer(i64),
+    Binary(Vec<u8>),
+    Float(f64),
+    Null,
 }
