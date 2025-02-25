@@ -78,10 +78,18 @@ pub fn map_query(q: &str) -> String {
         .result
 }
 
-pub fn value_generic_to_concrete(v: &crate::SqlValue) -> Box<dyn postgres::types::ToSql + Sync> {
+pub fn value_generic_to_concrete(
+    v: &crate::SqlValue,
+    t: &postgres::types::Type,
+) -> Box<dyn postgres::types::ToSql + Sync> {
     match v {
         crate::SqlValue::String(v) => Box::new(v.clone()),
-        crate::SqlValue::Integer(v) => Box::new(*v),
+        crate::SqlValue::Integer(v) => match t {
+            &postgres::types::Type::INT8 => Box::new(*v),
+            &postgres::types::Type::INT4 => Box::new(*v as i32),
+            &postgres::types::Type::INT2 => Box::new(*v as i16),
+            _ => panic!("Inconsistency in type mapping"),
+        },
         crate::SqlValue::Binary(v) => Box::new(v.clone()),
         crate::SqlValue::Float(v) => Box::new(*v),
         crate::SqlValue::Null => Box::<Option<i8>>::new(None),
@@ -100,17 +108,26 @@ pub fn row_conversion(r: postgres::Row) -> std::collections::HashMap<String, cra
                     &Type::BOOL => r
                         .get::<_, Option<bool>>(n)
                         .map(|v| SqlValue::Integer(if v { 1 } else { 0 })),
-                    &Type::TEXT | &Type::CHAR_ARRAY | &Type::VARCHAR | &Type::CHAR => {
-                        r.get::<_, Option<String>>(n).map(|x| SqlValue::String(x))
-                    }
-                    &Type::INT2 | &Type::INT4 | &Type::INT8 => {
-                        r.get::<_, Option<i64>>(n).map(|x| SqlValue::Integer(x))
-                    }
+                    &Type::TEXT
+                    | &Type::CHAR_ARRAY
+                    | &Type::VARCHAR
+                    | &Type::CHAR
+                    | &Type::BPCHAR => r.get::<_, Option<String>>(n).map(|x| SqlValue::String(x)),
+                    &Type::INT2 => r
+                        .get::<_, Option<i16>>(n)
+                        .map(|x| SqlValue::Integer(x as i64)),
+                    &Type::INT4 => r
+                        .get::<_, Option<i32>>(n)
+                        .map(|x| SqlValue::Integer(x as i64)),
+                    &Type::INT8 => r.get::<_, Option<i64>>(n).map(|x| SqlValue::Integer(x)),
                     &Type::BYTEA => r.get::<_, Option<Vec<u8>>>(n).map(|x| SqlValue::Binary(x)),
                     &Type::FLOAT4 | &Type::FLOAT8 => {
                         r.get::<_, Option<f64>>(n).map(|x| SqlValue::Float(x))
                     }
-                    _ => unimplemented!(),
+                    _ => {
+                        dbg!((n, t));
+                        unimplemented!()
+                    }
                 },
             )
         })

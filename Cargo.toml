@@ -1,6 +1,6 @@
 [package]
 name = "sillydb"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Eugenio Tampieri <eugenio@eutampieri.eu>"]
 edition = "2021"
 description = "Tools to interact with relational databases"

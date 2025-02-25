@@ -21,7 +21,8 @@ impl Database for postgres::Client {
         let statement = self.prepare(&query)?;
         let params = params
             .into_iter()
-            .map(|x| utils::value_generic_to_concrete(x));
+            .zip(statement.params())
+            .map(|(x, t)| utils::value_generic_to_concrete(x, t));
         Ok(self
             .query_raw(&statement, params)?
             .iterator()
